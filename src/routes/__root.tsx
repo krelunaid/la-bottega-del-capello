@@ -21,13 +21,16 @@ export const Route = createRootRoute({
       { title: APP_NAME },
       {
         name: "description",
-        content: "App de La Bottega del Capello. Prenota, chatta, vedi i tuoi appuntamenti.",
+        content: "App de La Bottega del Capello su iPhone, Android e iPad. Prenota, chatta, vedi i tuoi appuntamenti.",
       },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "Bottega" },
       { name: "mobile-web-app-capable", content: "yes" },
+      { name: "application-name", content: "LBC" },
       { name: "theme-color", content: "#110e0c" },
+      { name: "format-detection", content: "telephone=no" },
+      { name: "color-scheme", content: "dark" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
       { property: "og:title", content: APP_NAME },
@@ -44,22 +47,18 @@ export const Route = createRootRoute({
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "apple-touch-icon", href: "/icons/icon-180.png" },
+      { rel: "apple-touch-icon", sizes: "152x152", href: "/icons/icon-152.png" },
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/icons/icon-180.png" },
       { rel: "icon", type: "image/png", sizes: "192x192", href: "/icons/icon-192.png" },
       { rel: "preload", as: "image", href: "/images/hero.jpg" },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Outfit:wght@400;500&display=swap",
-      },
     ],
   }),
   component: () => (
-    <html lang="it" className="h-full overflow-hidden antialiased" suppressHydrationWarning>
+    <html lang="it" className="h-dvh overflow-hidden antialiased" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
-      <body className="h-full overflow-hidden bg-bg text-fg">
+      <body className="h-dvh overflow-hidden bg-bg text-fg">
         <PreviewHostBridge />
         <AuthProvider>
           <AppShell>

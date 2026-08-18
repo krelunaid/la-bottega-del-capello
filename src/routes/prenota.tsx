@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { BookingWizard } from "@/components/booking-wizard";
 import { listServices, listStylists } from "@/lib/salon-server";
-import { getStaffProfile } from "@/lib/staff-server";
+import { staffOnce } from "@/lib/staff-cache";
 
 export const Route = createFileRoute("/prenota")({
   staleTime: 60_000,
@@ -17,7 +17,7 @@ function PrenotaPage() {
   const { stylists, services } = Route.useLoaderData();
   const [shop, setShop] = useState(false);
   useEffect(() => {
-    getStaffProfile()
+    staffOnce()
       .then((s) => setShop(Boolean(s)))
       .catch(() => setShop(false));
   }, []);

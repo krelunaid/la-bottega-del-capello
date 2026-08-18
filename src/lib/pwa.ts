@@ -25,10 +25,12 @@ export function isStandalone() {
   return mq || ios;
 }
 
-export function deviceKind(): "ios" | "android" | "other" {
+export function deviceKind(): "ios" | "ipad" | "android" | "other" {
   if (typeof navigator === "undefined") return "other";
   const ua = navigator.userAgent;
-  if (/iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) return "ios";
+  const iPad = /iPad/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (iPad) return "ipad";
+  if (/iPhone|iPod/i.test(ua)) return "ios";
   if (/Android/i.test(ua)) return "android";
   return "other";
 }
@@ -74,12 +76,15 @@ function listenInstall() {
 
 export function registerPwa() {
   if (typeof window === "undefined") return;
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
+  const boot = () => {
+    if ("serviceWorker" in navigator) {
       void navigator.serviceWorker.register("/sw.js");
-    });
-  }
-  listenInstall();
+    }
+    listenInstall();
+  };
+  const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback;
+  if (idle) idle(boot);
+  else window.setTimeout(boot, 1);
 }
 
 if (typeof window !== "undefined") listenInstall();

@@ -861,28 +861,20 @@ function MediaCard({
 function QrShare() {
   const [url, setUrl] = useState("");
   useEffect(() => setUrl(appUrl()), []);
-  const src = url ? qrImageUrl(url, 520) : "";
+  const src = url ? qrImageUrl(url, 640) : "";
   return (
     <section className="mt-6">
       <p className="font-display text-3xl">QR dell’app</p>
-      <p className="mt-2 text-sm text-muted">
-        Stampa e metti in salone. Il cliente inquadra: su Android si installa, su iPhone due tap.
-      </p>
+      <p className="mt-2 text-sm text-muted">Uno solo. Inquadra e si apre l’app.</p>
       <div className="mx-auto mt-5 max-w-xs rounded-3xl bg-[#f3eee6] p-5">
         {src ? <img src={src} alt="QR app" className="mx-auto w-full" /> : null}
         <p className="mt-3 text-center font-display text-2xl text-[#110e0c]">LBC</p>
       </div>
       <div className="mt-4 grid gap-2">
         <Button asChild>
-          <a href={src} download="bottega-qr.png" target="_blank" rel="noreferrer">
-            Scarica il QR
-          </a>
-        </Button>
-        <Button asChild variant="outline">
-          <a href="/qr">Pagina da stampare</a>
+          <a href="/qr">Stampa</a>
         </Button>
       </div>
     </section>
   );
 }
-

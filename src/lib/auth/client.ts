@@ -44,24 +44,48 @@ const BEARER_KEY = "grok-auth.bearer-token";
 export function getBearerToken(): string | null {
   if (typeof window === "undefined") return null;
   try {
-    return window.sessionStorage.getItem(BEARER_KEY);
+    return window.sessionStorage.getItem(BEARER_KEY) || window.localStorage.getItem(BEARER_KEY);
   } catch {
     return null;
+  }
+}
+
+export function hasAuthHint(): boolean {
+  if (typeof window === "undefined") return false;
+  if (getBearerToken()) return true;
+  try {
+    return document.cookie.includes("better-auth");
+  } catch {
+    return false;
   }
 }
 
 function setBearerToken(token: string | null): void {
   if (typeof window === "undefined") return;
   try {
-    if (token) window.sessionStorage.setItem(BEARER_KEY, token);
-    else window.sessionStorage.removeItem(BEARER_KEY);
+    if (token) {
+      window.sessionStorage.setItem(BEARER_KEY, token);
+      window.localStorage.setItem(BEARER_KEY, token);
+    } else {
+      window.sessionStorage.removeItem(BEARER_KEY);
+      window.localStorage.removeItem(BEARER_KEY);
+    }
   } catch {
     /* storage unavailable — ignore */
   }
 }
 
 export function rememberSessionToken(token: string | null | undefined): void {
-  if (token) setBearerToken(token);
+  if (token) {
+    setBearerToken(token);
+    try {
+      window.sessionStorage.setItem("lbc-open", "1");
+      window.localStorage.setItem("lbc-open", "1");
+      window.dispatchEvent(new Event("lbc-open"));
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 /**
@@ -93,51 +117,37 @@ type PopupMessage = { source: "grok-auth-popup"; token: string | null; error?: s
  * Either way it clears any existing local session FIRST so switching providers
  * actually switches identity.
  */
+function isPhone(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
 export async function signIn(
   providerId: string,
   opts: { callbackURL?: string; errorCallbackURL?: string } = {},
 ): Promise<void> {
   const callbackURL = opts.callbackURL ?? "/";
   const errorCallbackURL = opts.errorCallbackURL ?? "/";
-
-  // Open the popup SYNCHRONOUSLY on the user gesture — before any await
-  // (including signOut). Awaiting first drops user-gesture privilege in some
-  // browsers when the opener is a cross-origin live-preview iframe.
-  const popup = inLivePreview() ? openSignInPopup(providerId) : null;
-
-  // Clear any prior session so switching providers actually switches identity.
-  // In the live preview the iframe has no session cookie — only a bearer token —
-  // so skip the network signOut when there's nothing to clear.
-  const hadBearer = Boolean(getBearerToken());
-  if (hadBearer || !inLivePreview()) {
-    try {
-      await authClient.signOut();
-    } catch {
-      // No active session (or a transient sign-out error) — proceed to sign in.
-    }
-  }
-  setBearerToken(null);
+  const start = `/auth/popup?providerId=${encodeURIComponent(providerId)}`;
 
   if (inLivePreview()) {
-    if (!popup) throw new Error("Pop-up blocked — allow pop-ups for sign-in");
+    if (isPhone()) {
+      window.location.assign(start);
+      return;
+    }
+    const popup = openSignInPopup(providerId);
+    if (!popup) {
+      window.location.assign(start);
+      return;
+    }
     const token = await waitForPopupToken(popup);
-    if (!token) throw new Error("Sign-in was cancelled or failed");
+    if (!token) {
+      window.location.assign(start);
+      return;
+    }
     setBearerToken(token);
-    // Refresh the client session store with the bearer attached (onRequest).
-    // Avoid a full iframe reload when we're already on the destination — that
-    // reload was the slow "still loading after the popup closed" feeling.
-    try {
-      await authClient.getSession();
-    } catch {
-      /* session store will recover on next useSession fetch */
-    }
-    if (typeof window !== "undefined") {
-      const dest = new URL(callbackURL, window.location.origin);
-      const here = window.location;
-      if (dest.origin !== here.origin || dest.pathname !== here.pathname || dest.search !== here.search) {
-        window.location.href = callbackURL;
-      }
-    }
+    window.location.replace(callbackURL);
     return;
   }
 
@@ -146,8 +156,12 @@ export async function signIn(
     callbackURL,
     errorCallbackURL,
   });
-  if (error) throw new Error(error.message ?? "Sign-in failed");
-  if (data?.url) window.location.href = data.url;
+  if (error) throw new Error(error.message ?? "Accesso non riuscito");
+  if (data?.url) {
+    window.location.assign(data.url);
+    return;
+  }
+  throw new Error("Google non ha risposto. Riprova.");
 }
 
 /**
@@ -212,4 +226,20 @@ export async function signOut(redirectTo = "/"): Promise<void> {
     setBearerToken(null);
   }
   window.location.href = redirectTo;
+}
+
+if (typeof window !== "undefined") {
+  const w = window as Window & { __lbcAuthMsg?: boolean };
+  if (!w.__lbcAuthMsg) {
+    w.__lbcAuthMsg = true;
+    window.addEventListener("message", (event) => {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data as PopupMessage | undefined;
+      if (!data || data.source !== "grok-auth-popup" || !data.token) return;
+      rememberSessionToken(data.token);
+      void authClient.getSession().catch(() => undefined);
+      if (window.location.pathname !== "/") window.location.replace("/");
+      else window.dispatchEvent(new Event("lbc-open"));
+    });
+  }
 }

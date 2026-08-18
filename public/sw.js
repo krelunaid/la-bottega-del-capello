@@ -1,4 +1,4 @@
-const CACHE = "lbc-static-v2";
+const CACHE = "lbc-static-v3";
 const PRE = ["/logo-lbc.png", "/images/hero.jpg", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {

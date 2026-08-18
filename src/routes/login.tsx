@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCurrentUserState, type AppUser } from "@/lib/auth/use-current-user";
-import { getStaffProfile, provisionStaffLogin, type StaffProfile } from "@/lib/staff-server";
+import { provisionStaffLogin, type StaffProfile } from "@/lib/staff-server";
+import { staffOnce } from "@/lib/staff-cache";
 
 type Search = { next?: string };
 
@@ -73,12 +74,14 @@ function Login() {
         window.location.assign(dest);
         return;
       }
-      const provisioned = await provisionStaffLogin({ data: { email: email.trim(), password } });
-      if (provisioned.ok && provisioned.token) {
-        rememberSessionToken(provisioned.token);
-        await authClient.getSession();
-        window.location.assign("/sala");
-        return;
+      if (email.trim().toLowerCase() === "negozio@bottega.it") {
+        const provisioned = await provisionStaffLogin({ data: { email: email.trim(), password } });
+        if (provisioned.ok && provisioned.token) {
+          rememberSessionToken(provisioned.token);
+          await authClient.getSession();
+          window.location.assign("/sala");
+          return;
+        }
       }
       const res = await authClient.signIn.email({ email: email.trim(), password });
       if (res.error) throw new Error(res.error.message === "Invalid password" || res.error.message === "User not found" ? "Email o password non corrette" : res.error.message || "Accesso non riuscito");
@@ -113,15 +116,15 @@ function Login() {
           {GROK_PROVIDERS.map((p) => (
             <Button
               key={p.providerId}
-              type="button"
+              asChild
               variant={p.idp === "google" ? "default" : "outline"}
               size="lg"
               className="h-12 rounded-xl"
-              disabled={Boolean(oauth)}
-              onClick={() => void onOauth(p.providerId)}
             >
-              {p.idp === "google" ? <GoogleMark /> : null}
-              {oauth === p.providerId ? "Apro…" : `Continua con ${p.label}`}
+              <a href={`/auth/popup?providerId=${encodeURIComponent(p.providerId)}`} target="_blank" rel="opener">
+                {p.idp === "google" ? <GoogleMark /> : null}
+                Continua con {p.label}
+              </a>
             </Button>
           ))}
         </div>
@@ -206,7 +209,7 @@ function AccountHome({ user }: { user: AppUser }) {
   const full = `${first} ${last}`.trim();
 
   useEffect(() => {
-    getStaffProfile()
+    staffOnce()
       .then(setStaff)
       .catch(() => setStaff(null));
   }, []);
