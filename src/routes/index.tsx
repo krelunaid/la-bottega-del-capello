@@ -144,6 +144,10 @@ function Home() {
             <Phone className="size-4 text-accent" />
             {SALON.phone}
           </a>
+          <Link to="/legale" className="pt-3 text-xs text-subtle underline">
+            Privacy, cookie e condizioni
+          </Link>
+          <p className="pt-4 text-center text-[10px] uppercase tracking-[0.2em] text-subtle">by kreluna</p>
         </div>
       </div>
     </div>

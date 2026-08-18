@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppuntamentiRouteImport } from './routes/appuntamenti'
 import { Route as ApriRouteImport } from './routes/apri'
 import { Route as ChatRouteImport } from './routes/chat'
+import { Route as LegaleRouteImport } from './routes/legale'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PrenotaRouteImport } from './routes/prenota'
 import { Route as QrRouteImport } from './routes/qr'
@@ -37,6 +38,11 @@ const ApriRoute = ApriRouteImport.update({
 const ChatRoute = ChatRouteImport.update({
   id: '/chat',
   path: '/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegaleRoute = LegaleRouteImport.update({
+  id: '/legale',
+  path: '/legale',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/appuntamenti': typeof AppuntamentiRoute
   '/apri': typeof ApriRoute
   '/chat': typeof ChatRoute
+  '/legale': typeof LegaleRoute
   '/login': typeof LoginRoute
   '/prenota': typeof PrenotaRoute
   '/qr': typeof QrRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/appuntamenti': typeof AppuntamentiRoute
   '/apri': typeof ApriRoute
   '/chat': typeof ChatRoute
+  '/legale': typeof LegaleRoute
   '/login': typeof LoginRoute
   '/prenota': typeof PrenotaRoute
   '/qr': typeof QrRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/appuntamenti': typeof AppuntamentiRoute
   '/apri': typeof ApriRoute
   '/chat': typeof ChatRoute
+  '/legale': typeof LegaleRoute
   '/login': typeof LoginRoute
   '/prenota': typeof PrenotaRoute
   '/qr': typeof QrRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/appuntamenti'
     | '/apri'
     | '/chat'
+    | '/legale'
     | '/login'
     | '/prenota'
     | '/qr'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/appuntamenti'
     | '/apri'
     | '/chat'
+    | '/legale'
     | '/login'
     | '/prenota'
     | '/qr'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/appuntamenti'
     | '/apri'
     | '/chat'
+    | '/legale'
     | '/login'
     | '/prenota'
     | '/qr'
@@ -140,6 +152,7 @@ export interface RootRouteChildren {
   AppuntamentiRoute: typeof AppuntamentiRoute
   ApriRoute: typeof ApriRoute
   ChatRoute: typeof ChatRoute
+  LegaleRoute: typeof LegaleRoute
   LoginRoute: typeof LoginRoute
   PrenotaRoute: typeof PrenotaRoute
   QrRoute: typeof QrRoute
@@ -175,6 +188,13 @@ declare module '@tanstack/react-router' {
       path: '/chat'
       fullPath: '/chat'
       preLoaderRoute: typeof ChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legale': {
+      id: '/legale'
+      path: '/legale'
+      fullPath: '/legale'
+      preLoaderRoute: typeof LegaleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -220,6 +240,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppuntamentiRoute: AppuntamentiRoute,
   ApriRoute: ApriRoute,
   ChatRoute: ChatRoute,
+  LegaleRoute: LegaleRoute,
   LoginRoute: LoginRoute,
   PrenotaRoute: PrenotaRoute,
   QrRoute: QrRoute,

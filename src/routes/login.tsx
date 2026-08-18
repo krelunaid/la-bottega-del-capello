@@ -35,6 +35,17 @@ function GoogleMark() {
   );
 }
 
+function AppleMark() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M16.37 12.63c.03 3.23 2.83 4.31 2.86 4.32-.02.08-.45 1.54-1.47 3.05-.89 1.3-1.81 2.6-3.26 2.63-1.42.03-1.88-.84-3.5-.84-1.64 0-2.15.82-3.5.87-1.4.05-2.47-1.41-3.37-2.71-1.84-2.66-3.25-7.52-1.36-10.8.94-1.63 2.62-2.66 4.44-2.69 1.39-.03 2.7.93 3.5.93.8 0 2.3-1.15 3.88-.98.66.03 2.51.27 3.7 2.01-.1.06-2.21 1.29-2.18 3.85ZM14.7 6.4c.75-.91 1.26-2.17 1.12-3.43-1.08.04-2.39.72-3.17 1.63-.7.8-1.31 2.09-1.15 3.32 1.22.1 2.46-.62 3.2-1.52Z"
+      />
+    </svg>
+  );
+}
+
 function Login() {
   const { next } = Route.useSearch();
   const dest = next || "/appuntamenti";
@@ -123,7 +134,8 @@ function Login() {
             >
               <a href={`/auth/popup?providerId=${encodeURIComponent(p.providerId)}`} target="_blank" rel="opener">
                 {p.idp === "google" ? <GoogleMark /> : null}
-                Continua con {p.label}
+                {p.idp === "apple" ? <AppleMark /> : null}
+                Entra con {p.label}
               </a>
             </Button>
           ))}
@@ -274,6 +286,10 @@ function AccountHome({ user }: { user: AppUser }) {
             Esci
           </Button>
         ) : null}
+        <Link to="/legale" className="pt-2 text-center text-xs text-subtle underline">
+          Privacy, cookie e condizioni
+        </Link>
+        <p className="pt-4 text-center text-[10px] uppercase tracking-[0.2em] text-subtle">by kreluna</p>
       </div>
     </div>
   );

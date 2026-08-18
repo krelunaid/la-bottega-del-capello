@@ -8,6 +8,7 @@ import { registerPwa } from "@/lib/pwa";
 import { cn } from "@/lib/utils";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { isGuest } from "@/components/welcome-login";
+import { CookieNotice } from "@/components/cookie-notice";
 
 type ShopSearch = { tab?: "chat" | "listino" | "foto" | "agenda" };
 const CUSTOMER_TABS: { to: string; label: string; icon: typeof Home; search?: ShopSearch }[] = [
@@ -34,6 +35,7 @@ const TITLES: Record<string, string> = {
   "/sala": "Sala",
   "/qr": "QR",
   "/apri": "Installa",
+  "/legale": "Privacy",
 };
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -113,7 +115,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div
         className={cn(
-          "min-h-0 flex-1",
+          "min-h-0 flex-1 page-in",
           welcome
             ? "overflow-hidden"
             : fill
@@ -125,9 +127,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         {children}
       </div>
 
+      {welcome ? null : <CookieNotice />}
       {welcome ? null : (
       <nav
-        className="glass absolute inset-x-3 bottom-3 z-40 grid rounded-2xl pb-[env(safe-area-inset-bottom)]"
+        className="absolute inset-x-3 bottom-3 z-40 grid rounded-2xl border border-line bg-elevated pb-[env(safe-area-inset-bottom)]"
         style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
       >
         {tabs.map((tab) => {

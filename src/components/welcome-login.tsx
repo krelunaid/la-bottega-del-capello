@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "@tanstack/react-router";
 import { authClient, authEnabled, GROK_PROVIDERS, getBearerToken, rememberSessionToken } from "@/lib/auth/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { provisionStaffLogin } from "@/lib/staff-server";
 
 export const GUEST_KEY = "lbc-guest";
 
@@ -38,6 +38,17 @@ function GoogleMark() {
   );
 }
 
+function AppleMark() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M16.37 12.63c.03 3.23 2.83 4.31 2.86 4.32-.02.08-.45 1.54-1.47 3.05-.89 1.3-1.81 2.6-3.26 2.63-1.42.03-1.88-.84-3.5-.84-1.64 0-2.15.82-3.5.87-1.4.05-2.47-1.41-3.37-2.71-1.84-2.66-3.25-7.52-1.36-10.8.94-1.63 2.62-2.66 4.44-2.69 1.39-.03 2.7.93 3.5.93.8 0 2.3-1.15 3.88-.98.66.03 2.51.27 3.7 2.01-.1.06-2.21 1.29-2.18 3.85ZM14.7 6.4c.75-.91 1.26-2.17 1.12-3.43-1.08.04-2.39.72-3.17 1.63-.7.8-1.31 2.09-1.15 3.32 1.22.1 2.46-.62 3.2-1.52Z"
+      />
+    </svg>
+  );
+}
+
 function markOpen() {
   try {
     window.sessionStorage.setItem("lbc-open", "1");
@@ -48,13 +59,26 @@ function markOpen() {
   }
 }
 
+function providerWait(idp: string): "google" | "x" | "apple" {
+  if (idp === "apple") return "apple";
+  if (idp === "google") return "google";
+  return "x";
+}
+
+function providerClass(idp: string): string {
+  if (idp === "google") return "bg-accent text-accent-fg";
+  if (idp === "apple") return "bg-fg text-bg";
+  return "border border-line-strong bg-transparent text-fg";
+}
+
 export function WelcomeLogin({ onGuest, onAuthed }: { onGuest?: () => void; onAuthed?: () => void }) {
+  const [signup, setSignup] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [waiting, setWaiting] = useState<"google" | "x" | null>(null);
+  const [waiting, setWaiting] = useState<"google" | "x" | "apple" | null>(null);
 
   function finish() {
     markOpen();
@@ -75,7 +99,7 @@ export function WelcomeLogin({ onGuest, onAuthed }: { onGuest?: () => void; onAu
     const tick = () => {
       if (getBearerToken()) takeToken();
     };
-    const id = window.setInterval(tick, 150);
+    const id = waiting ? window.setInterval(tick, 250) : undefined;
     const onVis = () => {
       if (document.visibilityState === "visible") tick();
     };
@@ -91,46 +115,23 @@ export function WelcomeLogin({ onGuest, onAuthed }: { onGuest?: () => void; onAu
     window.addEventListener("storage", tick);
     window.addEventListener("message", onMsg);
     return () => {
-      window.clearInterval(id);
+      if (id) window.clearInterval(id);
       window.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("focus", tick);
       window.removeEventListener("storage", tick);
       window.removeEventListener("message", onMsg);
     };
-  }, []);
+  }, [waiting]);
 
-  async function onEmail(e: FormEvent) {
+  async function onRegister(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setPending(true);
-    const mail = email.trim().toLowerCase();
-    const pass = password;
-    const display = name.trim() || mail.split("@")[0] || "Cliente";
     try {
-      if (mail === "negozio@bottega.it") {
-        const provisioned = await provisionStaffLogin({ data: { email: mail, password: pass } });
-        if (provisioned.ok && provisioned.token) {
-          rememberSessionToken(provisioned.token);
-          await authClient.getSession();
-          finish();
-          window.location.assign("/sala");
-          return;
-        }
-      }
-      const existing = await authClient.signIn.email({ email: mail, password: pass });
-      if (!existing.error) {
-        rememberSessionToken(existing.data?.token);
-        await authClient.getSession();
-        finish();
-        return;
-      }
-      if (pass.length < 8) throw new Error("Password di almeno 8 caratteri");
-      const created = await authClient.signUp.email({ name: display, email: mail, password: pass });
-      if (created.error) {
-        const msg = created.error.message || "";
-        if (/already|exist|registr/i.test(msg)) throw new Error("Email o password non corrette");
-        throw new Error(msg || "Accesso non riuscito");
-      }
+      if (name.trim().length < 2) throw new Error("Scrivi nome e cognome");
+      if (password.length < 8) throw new Error("Password di almeno 8 caratteri");
+      const created = await authClient.signUp.email({ name: name.trim(), email: email.trim(), password });
+      if (created.error) throw new Error(created.error.message || "Registrazione non riuscita");
       rememberSessionToken(created.data?.token);
       await authClient.getSession();
       finish();
@@ -143,32 +144,33 @@ export function WelcomeLogin({ onGuest, onAuthed }: { onGuest?: () => void; onAu
 
   return (
     <div className="flex h-full flex-col bg-bg">
-      <div className="relative h-[26%] shrink-0 overflow-hidden">
+      <div className="relative h-[32%] shrink-0 overflow-hidden">
         <img src="/images/hero.jpg" alt="" className="h-full w-full object-cover object-[center_42%]" />
         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-bg to-transparent" />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-7 pb-10 pt-7">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-7 pb-10 pt-8">
         <h1 className="text-center font-display text-5xl leading-none">Entra</h1>
 
         {authEnabled ? (
-          <div className="mt-8 grid gap-3">
+          <div className="mt-10 grid gap-3">
             {GROK_PROVIDERS.map((p) => (
               <a
                 key={p.providerId}
                 href={`/auth/popup?providerId=${encodeURIComponent(p.providerId)}`}
                 target="_blank"
                 rel="opener"
-                className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-accent text-base font-medium text-accent-fg first:bg-accent [&:nth-child(2)]:border [&:nth-child(2)]:border-line-strong [&:nth-child(2)]:bg-transparent [&:nth-child(2)]:text-fg"
+                className={`inline-flex h-14 items-center justify-center gap-2 rounded-2xl text-base font-medium ${providerClass(p.idp)}`}
                 onClick={(e) => {
                   const url = `/auth/popup?providerId=${encodeURIComponent(p.providerId)}`;
                   const popup = window.open(url, `lbc-${p.providerId}`, "popup,width=480,height=720");
                   if (popup) e.preventDefault();
-                  setWaiting(p.idp === "google" ? "google" : "x");
+                  setWaiting(providerWait(p.idp));
                 }}
               >
                 {p.idp === "google" ? <GoogleMark /> : null}
-                Continua con {p.label}
+                {p.idp === "apple" ? <AppleMark /> : null}
+                Entra con {p.label}
               </a>
             ))}
           </div>
@@ -176,38 +178,50 @@ export function WelcomeLogin({ onGuest, onAuthed }: { onGuest?: () => void; onAu
 
         {waiting ? (
           <div className="mt-4 rounded-2xl bg-elevated px-4 py-3 text-center">
-            <p className="text-sm text-muted">
-              Scegli l’account {waiting === "google" ? "Google" : "X"} nell’altra pagina. Poi torna qui.
-            </p>
-            <button type="button" className="mt-3 h-11 w-full rounded-xl bg-accent text-sm font-medium text-accent-fg" onClick={() => takeToken() || setError("Non ancora. Finisci l’accesso e riprova.")}>
+            <p className="text-sm text-muted">Scegli l’account nell’altra pagina. Poi torna qui.</p>
+            <button
+              type="button"
+              className="mt-3 h-11 w-full rounded-xl bg-accent text-sm font-medium text-accent-fg"
+              onClick={() => takeToken() || setError("Non ancora. Finisci l’accesso e riprova.")}
+            >
               Ho scelto l’account
             </button>
           </div>
         ) : null}
 
-        <form className="mt-8 grid gap-3" onSubmit={(e) => void onEmail(e)}>
-          <p className="text-center text-[11px] uppercase tracking-[0.16em] text-subtle">oppure email</p>
-          <label className="grid gap-1.5">
-            <Label htmlFor="w-name">Nome e cognome</Label>
-            <Input id="w-name" className="h-12 text-base" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
-          </label>
-          <label className="grid gap-1.5">
-            <Label htmlFor="w-email">Email</Label>
-            <Input id="w-email" type="email" className="h-12 text-base" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-          </label>
-          <label className="grid gap-1.5">
-            <Label htmlFor="w-pass">Password</Label>
-            <Input id="w-pass" type="password" className="h-12 text-base" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete="current-password" />
-          </label>
-          {error ? <p className="rounded-xl bg-danger/15 px-3 py-2 text-sm text-danger">{error}</p> : null}
-          <Button type="submit" size="lg" className="h-14 rounded-2xl" disabled={pending}>
-            {pending ? "Attendi…" : "Entra"}
-          </Button>
-        </form>
+        {signup ? (
+          <form className="mt-8 grid gap-3" onSubmit={(e) => void onRegister(e)}>
+            <label className="grid gap-1.5">
+              <Label htmlFor="w-name">Nome e cognome</Label>
+              <Input id="w-name" className="h-12 text-base" value={name} onChange={(e) => setName(e.target.value)} required />
+            </label>
+            <label className="grid gap-1.5">
+              <Label htmlFor="w-email">Email</Label>
+              <Input id="w-email" type="email" className="h-12 text-base" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            </label>
+            <label className="grid gap-1.5">
+              <Label htmlFor="w-pass">Password</Label>
+              <Input id="w-pass" type="password" className="h-12 text-base" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
+            </label>
+            {error ? <p className="rounded-xl bg-danger/15 px-3 py-2 text-sm text-danger">{error}</p> : null}
+            <Button type="submit" size="lg" className="h-14 rounded-2xl" disabled={pending}>
+              {pending ? "Attendi…" : "Registrati"}
+            </Button>
+            <button type="button" className="text-sm text-muted" onClick={() => setSignup(false)}>
+              Indietro
+            </button>
+          </form>
+        ) : (
+          <button type="button" className="mt-8 text-center text-sm text-fg" onClick={() => setSignup(true)}>
+            Se non hai un account, registrati
+          </button>
+        )}
+
+        {error && !signup ? <p className="mt-3 text-center text-sm text-danger">{error}</p> : null}
 
         <button
           type="button"
-          className="mt-6 py-3 text-center text-sm text-subtle"
+          className="mt-auto pt-8 text-center text-sm text-subtle"
           onClick={() => {
             setGuest();
             onGuest?.();
@@ -215,6 +229,10 @@ export function WelcomeLogin({ onGuest, onAuthed }: { onGuest?: () => void; onAu
         >
           Entra senza account
         </button>
+        <Link to="/legale" className="mt-2 text-center text-xs text-subtle underline">
+          Privacy, cookie e condizioni
+        </Link>
+        <p className="mt-5 text-center text-[10px] uppercase tracking-[0.2em] text-subtle">by kreluna</p>
       </div>
     </div>
   );
